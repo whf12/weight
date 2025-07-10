@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体重变化趋势分析工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e6f0fa 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2d3748;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #4c6ef5 0%, #228be6 100%);
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 1.6rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chart-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .chart-btn:hover {
+            background: #edf2f7;
+        }
+        
+        .chart-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        #weightChart {
+            width: 100% !important;
+            height: 400px !important;
+        }
+        
+        .input-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        
+        .input-title {
+            font-size: 1.4rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .person-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .person-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #f1f5f9;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .person-btn:hover {
+            background: #e2e8f0;
+        }
+        
+        .person-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-field label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .input-field input {
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border 0.3s ease;
+        }
+        
+        .input-field input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .add-btn {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .add-btn:hover {
+            background: #059669;
+        }
+        
+        .data-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        
+        .data-title {
+            font-size: 1.4rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            background: #f1f5f9;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .delete-btn {
+            padding: 6px 12px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #fecaca;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        .afang-color {
+            background: #FF6B6B;
+        }
+        
+        .axue-color {
+            background: #4ECDC4;
+        }
+        
+        .ajun-color {
+            background: #556270;
+        }
+        
+        .legend-text {
+            font-size: 0.9rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #10b981;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification">数据已保存！</div>
+    
+    <div class="container">
+        <header>
+            <h1>体重变化趋势分析工具</h1>
+            <p class="subtitle">添加日期和体重数据，自动生成折线图（数据自动保存）</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">体重变化趋势图</h2>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-person="all">全部</button>
+                        <button class="chart-btn" data-person="afang">阿芳</button>
+                        <button class="chart-btn" data-person="axue">阿雪</button>
+                        <button class="chart-btn" data-person="ajun">阿俊</button>
+                    </div>
+                </div>
+                <canvas id="weightChart"></canvas>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color afang-color"></div>
+                        <div class="legend-text">阿芳</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color axue-color"></div>
+                        <div class="legend-text">阿雪</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color ajun-color"></div>
+                        <div class="legend-text">阿俊</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <h2 class="input-title">添加新数据</h2>
+                <div class="person-selector">
+                    <button class="person-btn active" data-person="afang">阿芳</button>
+                    <button class="person-btn" data-person="axue">阿雪</button>
+                    <button class="person-btn" data-person="ajun">阿俊</button>
+                </div>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="dateInput">日期 (格式: M.D)</label>
+                        <input type="text" id="dateInput" placeholder="例如: 7.9" maxlength="4">
+                    </div>
+                    <div class="input-field">
+                        <label for="weightInput">体重 (斤)</label>
+                        <input type="number" id="weightInput" placeholder="例如: 98.5" step="0.1">
+                    </div>
+                </div>
+                <button class="add-btn" id="addDataBtn">添加数据</button>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 10px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: #4a5568;">使用说明</h3>
+                    <p style="font-size: 0.9rem; line-height: 1.6; color: #718096;">
+                        1. 选择人员<br>
+                        2. 输入日期（格式：月.日，如7.9）<br>
+                        3. 输入体重（单位：斤）<br>
+                        4. 点击"添加数据"按钮<br>
+                        5. 数据自动保存，刷新页面不会丢失
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-container">
+            <h2 class="data-title">当前数据</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>日期</th>
+                        <th>体重 (斤)</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    <!-- 数据将通过JavaScript填充 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            <p>数据来源：三人体重日记 | 图表实时更新 | 数据自动保存</p>
+            <p>注：体重单位为斤（1斤=0.5公斤）</p>
+        </footer>
+    </div>
+
+    <script>
+        // 初始数据
+        const initialData = {
+            afang: [
+                { date: '6.30', weight: 98.9 },
+                { date: '7.1', weight: 99.3 },
+                { date: '7.2', weight: 99 },
+                { date: '7.3', weight: 98 },
+                { date: '7.4', weight: 97.4 },
+                { date: '7.5', weight: 97.9 },
+                { date: '7.6', weight: 97.8 },
+                { date: '7.7', weight: 98.3 },
+                { date: '7.8', weight: 96.3 }
+            ],
+            axue: [
+                { date: '6.30', weight: 121.8 },
+                { date: '7.1', weight: 121.5 },
+                { date: '7.2', weight: 120.2 },
+                { date: '7.3', weight: 118.5 },
+                { date: '7.4', weight: 119.4 },
+                { date: '7.5', weight: 121.1 },
+                { date: '7.6', weight: 119 },
+                { date: '7.7', weight: 120.3 },
+                { date: '7.8', weight: 118.8 }
+            ],
+            ajun: [
+                { date: '6.30', weight: 114.1 },
+                { date: '7.1', weight: 114.4 },
+                { date: '7.2', weight: 113.8 },
+                { date: '7.3', weight: 115 },
+                { date: '7.4', weight: 115.8 },
+                { date: '7.6', weight: 112.9 },
+                { date: '7.7', weight: 114.5 },
+                { date: '7.8', weight: 112 }
+            ]
+        };
+
+        // 当前选择的用户
+        let selectedPerson = 'afang';
+        let weightChart = null;
+        let weightData = {...initialData};
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 尝试从本地存储加载数据
+            loadDataFromStorage();
+            
+            // 初始化图表
+            initChart();
+            
+            // 初始化数据表格
+            renderDataTable();
+            
+            // 添加事件监听器
+            setupEventListeners();
+        });
+
+        // 从本地存储加载数据
+        function loadDataFromStorage() {
+            const savedData = localStorage.getItem('weightData');
+            if (savedData) {
+                weightData = JSON.parse(savedData);
+            } else {
+                // 第一次使用，保存初始数据
+                saveDataToStorage();
+            }
+        }
+
+        // 保存数据到本地存储
+        function saveDataToStorage() {
+            localStorage.setItem('weightData', JSON.stringify(weightData));
+            showNotification('数据已保存！');
+        }
+
+        // 显示通知
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            
+            // 准备图表数据
+            const afangData = weightData.afang.map(item => item.weight);
+            const axueData = weightData.axue.map(item => item.weight);
+            const ajunData = weightData.ajun.map(item => item.weight);
+            
+            const afangDates = weightData.afang.map(item => item.date);
+            const axueDates = weightData.axue.map(item => item.date);
+            const ajunDates = weightData.ajun.map(item => item.date);
+            
+            // 合并所有日期并去重排序
+            const allDates = [...new Set([...afangDates, ...axueDates, ...ajunDates])].sort((a, b) => {
+                // 日期排序逻辑
+                const [aMonth, aDay] = a.split('.').map(Number);
+                const [bMonth, bDay] = b.split('.').map(Number);
+                return (aMonth * 100 + aDay) - (bMonth * 100 + bDay);
+            });
+            
+            // 创建数据集
+            const datasets = [
+                {
+                    label: '阿芳体重 (斤)',
+                    data: allDates.map(date => {
+                        const item = weightData.afang.find(d => d.date === date);
+                        return item ? item.weight : null;
+                    }),
+                    borderColor: '#FF6B6B',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#FF6B6B',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: '阿雪体重 (斤)',
+                    data: allDates.map(date => {
+                        const item = weightData.axue.find(d => d.date === date);
+                        return item ? item.weight : null;
+                    }),
+                    borderColor: '#4ECDC4',
+                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#4ECDC4',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: '阿俊体重 (斤)',
+                    data: allDates.map(date => {
+                        const item = weightData.ajun.find(d => d.date === date);
+                        return item ? item.weight : null;
+                    }),
+                    borderColor: '#556270',
+                    backgroundColor: 'rgba(85, 98, 112, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#556270',
+                    tension: 0.1,
+                    fill: false
+                }
+            ];
+            
+            // 创建图表
+            if (weightChart) {
+                weightChart.destroy();
+            }
+            
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allDates,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 14
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y}斤`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 90,
+                            max: 125,
+                            title: {
+                                display: true,
+                                text: '体重 (斤)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                padding: {top: 10, bottom: 10}
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                padding: 5
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                padding: {top: 10, bottom: 5}
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    hover: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        // 渲染数据表格
+        function renderDataTable() {
+            const tableBody = document.getElementById('dataTableBody');
+            tableBody.innerHTML = '';
+            
+            // 添加阿芳数据
+            weightData.afang.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>阿芳</td>
+                    <td>${item.date}</td>
+                    <td>${item.weight}</td>
+                    <td><button class="delete-btn" data-person="afang" data-date="${item.date}">删除</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // 添加阿雪数据
+            weightData.axue.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>阿雪</td>
+                    <td>${item.date}</td>
+                    <td>${item.weight}</td>
+                    <td><button class="delete-btn" data-person="axue" data-date="${item.date}">删除</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // 添加阿俊数据
+            weightData.ajun.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>阿俊</td>
+                    <td>${item.date}</td>
+                    <td>${item.weight}</td>
+                    <td><button class="delete-btn" data-person="ajun" data-date="${item.date}">删除</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // 添加删除按钮事件监听器
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const person = this.dataset.person;
+                    const date = this.dataset.date;
+                    deleteDataPoint(person, date);
+                });
+            });
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 图表控制按钮
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮状态
+                    document.querySelectorAll('.chart-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // 获取要显示的人员
+                    const person = this.dataset.person;
+                    
+                    // 更新图表显示
+                    if (person === 'all') {
+                        weightChart.data.datasets[0].hidden = false;
+                        weightChart.data.datasets[1].hidden = false;
+                        weightChart.data.datasets[2].hidden = false;
+                    } else if (person === 'afang') {
+                        weightChart.data.datasets[0].hidden = false;
+                        weightChart.data.datasets[1].hidden = true;
+                        weightChart.data.datasets[2].hidden = true;
+                    } else if (person === 'axue') {
+                        weightChart.data.datasets[0].hidden = true;
+                        weightChart.data.datasets[1].hidden = false;
+                        weightChart.data.datasets[2].hidden = true;
+                    } else if (person === 'ajun') {
+                        weightChart.data.datasets[0].hidden = true;
+                        weightChart.data.datasets[1].hidden = true;
+                        weightChart.data.datasets[2].hidden = false;
+                    }
+                    
+                    weightChart.update();
+                });
+            });
+            
+            // 人员选择按钮
+            document.querySelectorAll('.person-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮状态
+                    document.querySelectorAll('.person-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // 更新当前选择的人员
+                    selectedPerson = this.dataset.person;
+                });
+            });
+            
+            // 添加数据按钮
+            document.getElementById('addDataBtn').addEventListener('click', addDataPoint);
+        }
+
+        // 添加数据点
+        function addDataPoint() {
+            const dateInput = document.getElementById('dateInput').value.trim();
+            const weightInput = document.getElementById('weightInput').value.trim();
+            
+            // 验证输入
+            if (!dateInput || !weightInput) {
+                showNotification('请填写日期和体重');
+                return;
+            }
+            
+            // 验证日期格式
+            if (!/^\d{1,2}\.\d{1,2}$/.test(dateInput)) {
+                showNotification('日期格式不正确，请使用如 "7.9" 的格式');
+                return;
+            }
+            
+            // 转换体重为数字
+            const weight = parseFloat(weightInput);
+            if (isNaN(weight)) {
+                showNotification('体重必须是数字');
+                return;
+            }
+            
+            // 添加数据点
+            const existingIndex = weightData[selectedPerson].findIndex(item => item.date === dateInput);
+            
+            if (existingIndex !== -1) {
+                // 更新现有数据点
+                weightData[selectedPerson][existingIndex].weight = weight;
+            } else {
+                // 添加新数据点
+                weightData[selectedPerson].push({
+                    date: dateInput,
+                    weight: weight
+                });
+                
+                // 按日期排序
+                weightData[selectedPerson].sort((a, b) => {
+                    const [aMonth, aDay] = a.date.split('.').map(Number);
+                    const [bMonth, bDay] = b.date.split('.').map(Number);
+                    return (aMonth * 100 + aDay) - (bMonth * 100 + bDay);
+                });
+            }
+            
+            // 更新图表
+            initChart();
+            
+            // 更新表格
+            renderDataTable();
+            
+            // 保存数据
+            saveDataToStorage();
+            
+            // 清空输入框
+            document.getElementById('dateInput').value = '';
+            document.getElementById('weightInput').value = '';
+        }
+
+        // 删除数据点
+        function deleteDataPoint(person, date) {
+            if (confirm('确定要删除这个数据点吗？')) {
+                weightData[person] = weightData[person].filter(item => item.date !== date);
+                
+                // 更新图表
+                initChart();
+                
+                // 更新表格
+                renderDataTable();
+                
+                // 保存数据
+                saveDataToStorage();
+            }
+        }
+    </script>
+</body>
+</html>
